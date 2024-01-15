@@ -66,7 +66,6 @@ const handleFactura = async (req, res) => {
         // Limpiar el ticket exitoso del array
         handleWebhookLogger.clearTickets();
       } catch (error) {
-        if(error.response){
         console.log(error.response.data);
         const errorTicket = handleWebhookLogger.getSuccessfulTickets();
         const errorMessage = error.response.data || error.response || error;
@@ -74,9 +73,10 @@ const handleFactura = async (req, res) => {
           errorTicket: errorTicket,
           errorMessage: errorMessage
         }
+        if(error.response){
           handleFacturaLogger.error('Error Message:', failures);
       } else {
-        fs.appendFile('tickets_con_error_en_sap.txt', JSON.stringify(error + '\n', errorTicket) + '\n', (writeErr) => {
+        fs.appendFile('tickets_con_error_en_sap.txt', JSON.stringify(error + '\n', failures) + '\n', (writeErr) => {
           if (writeErr) {
             console.error('Error al escribir el ticket con error:', writeErr);
           } else {
