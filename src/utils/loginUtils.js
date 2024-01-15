@@ -3,7 +3,7 @@ require("dotenv").config();
 const https = require('https');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
-const rutaRaiz = process.env.RUTARAIZ;
+const rutaRaiz = "https://10.0.0.2:50000/b1s/v2/";
 
 const login = async (maxRetries = 2) => {
   
@@ -15,9 +15,9 @@ const login = async (maxRetries = 2) => {
     try {
       const loginEndpoint = "Login";
       const credentials = {
-        UserName: process.env.USERSAP,
-        Password: process.env.PASSWORD,
-        CompanyDB: process.env.COMPANYDB,
+        UserName: manager,
+        Password: "Ruta#205#",
+        CompanyDB: ZDISTRITEST,
       };
 
       const agent = new https.Agent({
