@@ -14,28 +14,12 @@ const logger = require('./src/services/logger');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const helmet = require('helmet');
-// const v8 = require('v8');
-// const stats = v8.getHeapStatistics();
-// console.log(stats)// estadisticas uso de memory
-// process.on('unhandledRejection', (reason, promise) => {
-//   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-// });
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(errorHandling);
 app.use(cookieParser());
-app.use(
-  session({
-    store: new FileStore(),
-    secret: 'tu_secreto',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false },
-  })
-);
 
 
 app.use('/webhook', webhookRoute);
