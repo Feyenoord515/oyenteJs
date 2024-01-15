@@ -1,7 +1,7 @@
 // index.js
- process.on('unhandledRejection', (reason, promise) => {    //El process.on('unhandledRejection', ...) debe colocarse al principio de su secuencia de comandos, antes de que se ejecute cualquier código asincrónico. Esto garantiza que capture los rechazos de promesas no controlados desde el principio.
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+//  process.on('unhandledRejection', (reason, promise) => {    //El process.on('unhandledRejection', ...) debe colocarse al principio de su secuencia de comandos, antes de que se ejecute cualquier código asincrónico. Esto garantiza que capture los rechazos de promesas no controlados desde el principio.
+//   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+// });
 const express = require('express');
 require("dotenv").config();
 const app = express();
@@ -17,9 +17,9 @@ const helmet = require('helmet');
 // const v8 = require('v8');
 // const stats = v8.getHeapStatistics();
 // console.log(stats)// estadisticas uso de memory
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+// process.on('unhandledRejection', (reason, promise) => {
+//   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+// });
 
 app.use(helmet());
 app.use(cors());

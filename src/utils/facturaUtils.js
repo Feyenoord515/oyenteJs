@@ -10,6 +10,8 @@ const session = require("express-session");
 const FileStore = require("session-file-store")(session);
 const handleFacturaLogger = require("../services/handleFacturaLogger");
 const handleWebhookLogger = require('../services/handleWebhookLogger');
+const handleWebhookModule = require('../utils/webhookUtils')
+const loginUtils = require('../utils/loginUtils');
 
 router.use(
   session({
@@ -23,42 +25,47 @@ router.use(
 
 const handleFactura = async (req, res) => {
   try {
-    console.log("Estoy en factura.");
 
-    const sessionId = req.session.SessionId;
+    await handleWebhookModule.handleWebhook(req, res);
+    const { success, sessionData } = await loginUtils.login();
+    console.log(sessionData)
+    console.log("Estoy en factura.");
+    if (success) { 
+    
    
     const successfulTickets = handleWebhookLogger.getSuccessfulTickets();
     if (successfulTickets.length == 0){console.log("no hay tickets validos por cargar")}
     fs.readFile("tempData.txt", async (err, buffer) => {
+      try {
       // console.log(buffer.toString('utf-8'));
-      const tickets = successfulTickets
+      const tickets = await successfulTickets
       console.log(tickets);
-      const data = {
+      const data = JSON.stringify( {
         CardCode: "C".concat(tickets[0].Comprobante.Cliente[0].NroDocumento[0]),
         DocDate: tickets[0].Comprobante.FechaHora[0].toString().slice(0, 10),
         DocDueDate: tickets[0].Comprobante.FechaHora[0].toString().slice(0, 10),
         FederalTaxID: tickets[0].Comprobante.Cliente[0].NroDocumento[0],
         U_WESAP_CarrierCod: "673",
-        SalesPersonCode: 65,
-      };
+        SalesPersonCode: 65
+      });
 
       const agent = new https.Agent({
         rejectUnauthorized: false,
       });
-
-      const config = {
-       
-       
+      
+      let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://10.0.0.2:50000/b1s/v2/Invoices',
+        headers: { 
+                    Cookie: `B1SESSION=${sessionData.SessionId}`,
+        },
         httpsAgent: agent,
-       
-        headers: {
-          'Cookie': `B1SESSION=${sessionId}`,
-          'Content-Type': 'application/json',
-        }
+        data : data
       };
 
-      try {
-        const response = await axios.post(process.env.URLINVOICES, data, config);
+    
+        const response = await axios.request(config);
 
         
         handleFacturaLogger.info("Factura creada exitosamente:", response.data);
@@ -66,29 +73,49 @@ const handleFactura = async (req, res) => {
         // Limpiar el ticket exitoso del array
         handleWebhookLogger.clearTickets();
       } catch (error) {
-        console.log(error);
+        console.log(error.response.data);
+       if (error.response.data) {
         const errorTicket = handleWebhookLogger.getSuccessfulTickets();
-        const errorMessage = error.response.data || error.response || error;
+        const errorMessage = error.response.data
         const failures = {
           errorTicket: errorTicket,
           errorMessage: errorMessage
         }
-        if(error.response){
-          handleFacturaLogger.error('Error Message:', failures);
-      } else {
-        fs.appendFile('tickets_con_error_en_sap.txt', JSON.stringify(error + '\n', failures) + '\n', (writeErr) => {
+        fs.appendFile('tickets_conerror.response.data.txt', JSON.stringify(error + '\n', failures) + '\n', (writeErr) => {
           if (writeErr) {
             console.error('Error al escribir el ticket con error:', writeErr);
           } else {
-            console.log('Ticket con error guardado en tickets_con_error_en_sap.txt');
+            console.log('Ticket con error guardado en tickets_conerror.response.data.txt');
           }
         });
       }
+       else if(error.response){
+        const errorTicket = handleWebhookLogger.getSuccessfulTickets();
+        const errorMessage = error.response
+        const failures = {
+          errorTicket: errorTicket,
+          errorMessage: errorMessage
+        }
+        fs.appendFile('tickets_con_error_response.txt', JSON.stringify(error + '\n', failures) + '\n', (writeErr) => {
+          if (writeErr) {
+            console.error('Error al escribir el ticket con error:', writeErr);
+          } else {
+            console.log('Ticket con error guardado en tickets_con_error_response.txt');
+          }
+        });
+      } else if (error) { fs.appendFile('tickets_con_error_deconocido.txt', JSON.stringify(error) + '\n', (writeErr) => {
+        if (writeErr) {
+          console.error('Error al escribir el ticket con error:', writeErr);
+        } else {
+          console.log('Ticket con error guardado en tickets_con_error_deconocido.txt');
+        }
+      });}
       handleWebhookLogger.clearTickets();
-        // Si hay un error, los tickets con éxito permanecen en el array
+       
       }
       
     });
+  } 
   } catch (error) {
     console.error('Error en la operación:', error);
     res.status(500).send('Error en la operación.');

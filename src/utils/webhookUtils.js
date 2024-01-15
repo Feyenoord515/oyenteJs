@@ -1,11 +1,11 @@
-//handleWebhook:
 const express = require("express");
 const router = express.Router();
 const xml2js = require("xml2js");
 const querystring = require("querystring");
 const handleWebhookLogger = require('../services/handleWebhookLogger');
 const fs = require("fs");
-
+const firebase = require('../../config/firebase');
+const { getFirestore, collection, addDoc, serverTimestamp } = require('firebase/firestore');
 const tempDataFilePath = "tempData.txt";
 
 
@@ -17,47 +17,56 @@ const handleErrors = (err, res, message) => {
 
 
 const handleWebhook = (req, res, next) => {
-  try {
+  return new Promise(async (resolve, reject) => {
+      try {
     const urlEncodedData = req.body.DetalleComprobante;
     const decodedData = querystring
       .unescape(urlEncodedData)
       .replace(/\+/g, "  ");
 
-    xml2js.parseString(decodedData, (err, result) => {
-      if (err) {
-        return handleErrors(err, res, "Error al analizar XML");
-      }
-
-      const comprobante = result;
-
-      if (comprobante) {
-        let data = [];
-        data.unshift(comprobante);
-
-        try {
-          fs.appendFileSync(tempDataFilePath, JSON.stringify(data));
-        } catch (writeError) {
-          return handleErrors(
-            writeError,
-            res,
-            "Error al escribir en el archivo tempData"
-          );
+      xml2js.parseString(decodedData, async (err, result) => {
+        if (err) {
+            reject(handleErrors(err, res, "Error al analizar XML"));
+            return;
         }
-        handleWebhookLogger.addReceivedTicket(comprobante);
-        
-        
-      } else {
-        
-        handleWebhookLogger.error("Tipo de datos no reconocido", err);
-        return res.status(400).send("Tipo de datos no reconocido");
-      }
+
+        const comprobante = result;
+        const respuestasCollection = collection(firebase.firebaseFirestore, 'respuestas');
+
+        if (comprobante) {
+            let data = [];
+            data.unshift(comprobante);
+
+            try {
+                await addDoc(respuestasCollection, {
+                    detalleComprobante: JSON.stringify(data),
+                    timestamp: serverTimestamp(),
+                });
+                fs.appendFile(tempDataFilePath, JSON.stringify(data), (err) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                });
+                handleWebhookLogger.addReceivedTicket(comprobante);
+                resolve();
+            } catch (writeError) {
+                reject(handleErrors(
+                    writeError,
+                    res,
+                    "Error al escribir en el archivo tempData"
+                ));
+            }
+        } else {
+            reject(handleErrors("Tipo de datos no reconocido", res));
+        }
     });
-  } catch (error) {
-    
-    return handleErrors(error, res, "Error no manejado en el webhook");
-  }
+} catch (error) {
+    reject(handleErrors(error, res, "Error no manejado en el webhook"));
+}
+});
 };
 
 module.exports = {
   handleWebhook,
 };
+
