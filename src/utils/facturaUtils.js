@@ -66,7 +66,7 @@ const handleFactura = async (req, res) => {
         // Limpiar el ticket exitoso del array
         handleWebhookLogger.clearTickets();
       } catch (error) {
-        console.log(error.response.data);
+        console.log(error);
         const errorTicket = handleWebhookLogger.getSuccessfulTickets();
         const errorMessage = error.response.data || error.response || error;
         const failures = {
