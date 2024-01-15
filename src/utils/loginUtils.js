@@ -15,9 +15,9 @@ const login = async (maxRetries = 2) => {
     try {
       const loginEndpoint = "Login";
       const credentials = {
-        UserName: manager,
+        UserName: "manager",
         Password: "Ruta#205#",
-        CompanyDB: ZDISTRITEST,
+        CompanyDB: "ZDISTRITEST",
       };
 
       const agent = new https.Agent({
